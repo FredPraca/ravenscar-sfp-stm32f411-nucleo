@@ -440,119 +440,108 @@ package System.STM32F4.Timers.GeneralPurpose is
 
    type Timer_Prescaler is new Interfaces.Unsigned_16;
 
-   type Timer_Counter_16 is new Interfaces.Unsigned_16;
+   type CCR_Index is range 1 .. 4;
 
-   type Timer_Auto_Reload_16 is new Interfaces.Unsigned_16;
+   --  Generic package to deal with the fat that TIM2 and TIM5 use 32 bits for
+   --  Counter instead of the 16 bits like for TIM3 and TIM4
+   generic
+      type Counter is mod <>;
+      type CCR is private;
+      type CCR_Array is array (CCR_Index) of CCR;
+   package Timer_Registers is
 
-   type Capture_Compare_Register_16 is new Interfaces.Unsigned_16
-     with Size => 32;
+      type Timer_Register is
+         record
+            TIM_CR1 : Control_Register_1;
+            TIM_CR2 : Control_Register_2;
+            TIM_SMCR : Slave_Mode_Control_Register;
+            TIM_DIER : DMA_Interrupt_Enable_Register;
+            TIM_SR : Status_Register;
+            TIM_EGR : Event_Generation_Register;
+            TIM_CCMR1 : Capture_Compare_Mode_Register;
+            TIM_CCMR2 : Capture_Compare_Mode_Register;
+            TIM_CCER : Capture_Compare_Enable_Register;
+            TIM_CNT : Counter;
+            TIM_PSC : Timer_Prescaler;
+            TIM_ARR : Counter;
+            TIM_CCRs : CCR_Array;
+            TIM_DCR : DMA_Control_Register;
+            TIM_DMAR : DMA_Address;
+            TIM2_OR : Timer2_Option_Register;
+         end record with Size => 21 * Bits_32'Size;
+      for Timer_Register use
+         record
+            TIM_CR1 at 0 range 0 .. 15;
+            TIM_CR2 at 1 * Offset_Size range 0 .. 15;
+            TIM_SMCR at 2 * Offset_Size range 0 .. 15;
+            TIM_DIER at 3 * Offset_Size range 0 .. 15;
+            TIM_SR at 4 * Offset_Size range 0 .. 15;
+            TIM_EGR at 5 * Offset_Size range 0 .. 15;
+            TIM_CCMR1 at 6 * Offset_Size range 0 .. 15;
+            TIM_CCMR2 at 7 * Offset_Size range 0 .. 15;
+            TIM_CCER at 8 * Offset_Size range 0 .. 15;
+            TIM_CNT at 9 * Offset_Size range 0 .. 31;
+            TIM_PSC at 10 * Offset_Size range 0 .. 15;
+            TIM_ARR at 11 * Offset_Size range 0 .. 31;
+            TIM_CCRs at 13 * Offset_Size range 0 .. 127;
+            TIM_DCR at 18 * Offset_Size range 0 .. 15;
+            TIM_DMAR at 19 * Offset_Size range 0 .. 15;
+            TIM2_OR at 20 * Offset_Size range 0 .. 15;
+         end record;
+   end Timer_Registers;
 
-   type Timer_Counter_32 is new Interfaces.Unsigned_32;
-
-   type Timer_Auto_Reload_32 is new Interfaces.Unsigned_32;
-
-   type Capture_Compare_Register_32 is new Interfaces.Unsigned_32;
-
-   type CCR_Array_16 is array (1 .. 4) of Capture_Compare_Register_16
-     with Size => 32 * 4;
-
-   type CCR_Array_32 is array (1 .. 4) of Capture_Compare_Register_32
-     with Size => 32 * 4;
-
-   type Timer_Register_16 is
+   --  Preparing types for generic instanciation
+   type CCR_16 is
       record
-         TIM_CR1 : Control_Register_1;
-         TIM_CR2 : Control_Register_2;
-         TIM_SMCR : Slave_Mode_Control_Register;
-         TIM_DIER : DMA_Interrupt_Enable_Register;
-         TIM_SR : Status_Register;
-         TIM_EGR : Event_Generation_Register;
-         TIM_CCMR1 : Capture_Compare_Mode_Register;
-         TIM_CCMR2 : Capture_Compare_Mode_Register;
-         TIM_CCER : Capture_Compare_Enable_Register;
-         TIM_CNT : Timer_Counter_16;
-         TIM_PSC : Timer_Prescaler;
-         TIM_ARR : Timer_Auto_Reload_16;
-         TIM_CCRs : CCR_Array_16;
-         TIM_DCR : DMA_Control_Register;
-         TIM_DMAR : DMA_Address;
-         TIM2_OR : Timer2_Option_Register;
-      end record with Size => 21 * Bits_32'Size;
-   for Timer_Register_16 use
+         Value : Interfaces.Unsigned_16;
+      end record with Size => 32;
+   for CCR_16 use
       record
-         TIM_CR1 at 0 range 0 .. 15;
-         TIM_CR2 at 1 * Offset_Size range 0 .. 15;
-         TIM_SMCR at 2 * Offset_Size range 0 .. 15;
-         TIM_DIER at 3 * Offset_Size range 0 .. 15;
-         TIM_SR at 4 * Offset_Size range 0 .. 15;
-         TIM_EGR at 5 * Offset_Size range 0 .. 15;
-         TIM_CCMR1 at 6 * Offset_Size range 0 .. 15;
-         TIM_CCMR2 at 7 * Offset_Size range 0 .. 15;
-         TIM_CCER at 8 * Offset_Size range 0 .. 15;
-         TIM_CNT at 9 * Offset_Size range 0 .. 31;
-         TIM_PSC at 10 * Offset_Size range 0 .. 15;
-         TIM_ARR at 11 * Offset_Size range 0 .. 15;
-         TIM_CCRs at 13 * Offset_Size range 0 .. 127;
-         TIM_DCR at 18 * Offset_Size range 0 .. 15;
-         TIM_DMAR at 19 * Offset_Size range 0 .. 15;
-         TIM2_OR at 20 * Offset_Size range 0 .. 15;
+         Value at 0 range 0 .. 15;
       end record;
 
-   type Timer_Register_32 is
+   type CCR_Array_16 is array (CCR_Index) of CCR_16 with Size => 4 * 32;
+
+   --  Instanciation for the 16 bits timers
+   package Timer_Registers_16 is
+     new Timer_Registers (Counter => Interfaces.Unsigned_16,
+                          CCR => CCR_16,
+                          CCR_Array => CCR_Array_16);
+
+   --  Preparing types for generic instanciation
+   type CCR_32 is
       record
-         TIM_CR1 : Control_Register_1;
-         TIM_CR2 : Control_Register_2;
-         TIM_SMCR : Slave_Mode_Control_Register;
-         TIM_DIER : DMA_Interrupt_Enable_Register;
-         TIM_SR : Status_Register;
-         TIM_EGR : Event_Generation_Register;
-         TIM_CCMR1 : Capture_Compare_Mode_Register;
-         TIM_CCMR2 : Capture_Compare_Mode_Register;
-         TIM_CCER : Capture_Compare_Enable_Register;
-         TIM_CNT : Timer_Counter_32;
-         TIM_PSC : Timer_Prescaler;
-         TIM_ARR : Timer_Auto_Reload_32;
-         TIM_CCRs : CCR_Array_32;
-         TIM_DCR : DMA_Control_Register;
-         TIM_DMAR : DMA_Address;
-         TIM2_OR : Timer2_Option_Register;
-      end record with Size => 21 * Bits_32'Size;
-   for Timer_Register_32 use
+         Value : Interfaces.Unsigned_32;
+      end record with Size => 32;
+   for CCR_32 use
       record
-         TIM_CR1 at 0 range 0 .. 15;
-         TIM_CR2 at 1 * Offset_Size range 0 .. 15;
-         TIM_SMCR at 2 * Offset_Size range 0 .. 15;
-         TIM_DIER at 3 * Offset_Size range 0 .. 15;
-         TIM_SR at 4 * Offset_Size range 0 .. 15;
-         TIM_EGR at 5 * Offset_Size range 0 .. 15;
-         TIM_CCMR1 at 6 * Offset_Size range 0 .. 15;
-         TIM_CCMR2 at 7 * Offset_Size range 0 .. 15;
-         TIM_CCER at 8 * Offset_Size range 0 .. 15;
-         TIM_CNT at 9 * Offset_Size range 0 .. 31;
-         TIM_PSC at 10 * Offset_Size range 0 .. 15;
-         TIM_ARR at 11 * Offset_Size range 0 .. 31;
-         TIM_CCRs at 13 * Offset_Size range 0 .. 127;
-         TIM_DCR at 18 * Offset_Size range 0 .. 15;
-         TIM_DMAR at 19 * Offset_Size range 0 .. 15;
-         TIM2_OR at 20 * Offset_Size range 0 .. 15;
+         Value at 0 range 0 .. 31;
       end record;
 
-   TIM2 : Timer_Register_32
+   type CCR_Array_32 is array (CCR_Index) of CCR_32 with Size => 4 * 32;
+
+   --  Instanciation for the 32 bits timers
+   package Timer_Registers_32 is
+     new Timer_Registers (Counter => Interfaces.Unsigned_32,
+                          CCR => CCR_32,
+                         CCR_Array => CCR_Array_32);
+
+   TIM2 : Timer_Registers_32.Timer_Register
      with Volatile, Address => System'To_Address (TIM2_Base);
 
    pragma Import (Ada, TIM2);
 
-   TIM3 : Timer_Register_16
+   TIM3 : Timer_Registers_16.Timer_Register
      with Volatile, Address => System'To_Address (TIM3_Base);
 
    pragma Import (Ada, TIM3);
 
-   TIM4 : Timer_Register_16
+   TIM4 : Timer_Registers_16.Timer_Register
      with Volatile, Address => System'To_Address (TIM4_Base);
 
    pragma Import (Ada, TIM4);
 
-   TIM5 : Timer_Register_32
+   TIM5 : Timer_Registers_32.Timer_Register
      with Volatile, Address => System'To_Address (TIM5_Base);
 
    pragma Import (Ada, TIM5);
