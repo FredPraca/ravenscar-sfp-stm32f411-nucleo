@@ -363,35 +363,52 @@ package System.STM32F4.Timers.GeneralPurpose is
    for Output_Level use (HIGH => 0,
                          LOW => 1);
 
+   type Triggering_Event is (NON_INVERTED_RISING_EDGE,
+                             INVERTED_FALLING_EDGE,
+                             NON_INVERTED_BOTH_EDGES) with Size => 3;
+   for Triggering_Event use (NON_INVERTED_RISING_EDGE => 2#000#,
+                             INVERTED_FALLING_EDGE => 2#001#,
+                             NON_INVERTED_BOTH_EDGES => 2#101#);
+
+   type Channel_Configuration (Mode : Capture_Compare_Selection := OUTPUT) is
+      record
+         case Mode is
+            when OUTPUT =>
+               CCP : Output_Level;
+               CCNP : Boolean;
+            when others =>
+               Channel_Activation : Triggering_Event;
+         end case;
+      end record with Size => 3, Unchecked_Union;
+   for Channel_Configuration use
+      record
+         Channel_Activation at 0 range 0 .. 2;
+         CCP at 0 range 0 .. 0;
+         CCNP at 0 range 2 .. 2;
+      end record;
+
    type Capture_Compare_Enable_Register is
       record
          CC1E : Boolean;
-         CC1P : Output_Level;
-         CC1NP : Boolean;
          CC2E : Boolean;
-         CC2P : Output_Level;
-         CC2NP : Boolean;
          CC3E : Boolean;
-         CC3P : Output_Level;
-         CC3NP : Boolean;
          CC4E : Boolean;
-         CC4P : Output_Level;
-         CC4NP : Boolean;
+
+         Channel_1_Configuration : Channel_Configuration;
+         Channel_2_Configuration : Channel_Configuration;
+         Channel_3_Configuration : Channel_Configuration;
+         Channel_4_Configuration : Channel_Configuration;
       end record with Size => Bits_16'Size;
    for Capture_Compare_Enable_Register use
       record
          CC1E at 0 range 0 .. 0;
-         CC1P at 0 range 1 .. 1;
-         CC1NP at 0 range 3 .. 3;
+         Channel_1_Configuration at 0 range 1 .. 3;
          CC2E at 0 range 4 .. 4;
-         CC2P at 0 range 5 .. 5;
-         CC2NP at 0 range 7 .. 7;
+         Channel_2_Configuration at 0 range 5 .. 7;
          CC3E at 0 range 8 .. 8;
-         CC3P at 0 range 9 .. 9;
-         CC3NP at 0 range 11 .. 11;
+         Channel_3_Configuration at 0 range 9 .. 11;
          CC4E at 0 range 12 .. 12;
-         CC4P at 0 range 13 .. 13;
-         CC4NP at 0 range 15 .. 15;
+         Channel_4_Configuration at 0 range 13 .. 15;
       end record;
 
    type Burst_Length is range 1 .. 18 with Size => Bits_5'Size;
